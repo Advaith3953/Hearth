@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hearth</title>
+<style>
+:root{--bg:#f7f5f1;--fg:#25231f;--mut:#6d675d;--card:#fff;--line:#e2ddd3;--acc:#b4531f;--hit:#fbe9d9;--ok:#2d7a46;--bad:#b3322d}
+@media (prefers-color-scheme:dark){:root{--bg:#1c1a17;--fg:#ece7de;--mut:#a39b8d;--card:#27241f;--line:#3a352e;--acc:#e08a52;--hit:#4a3220;--ok:#6cc58a;--bad:#e87a74}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif;display:flex;flex-direction:column;height:100vh}
+header{padding:10px 16px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+h1{font-size:18px;margin:0;color:var(--acc)}.sub{color:var(--mut);font-size:13px;flex:1;min-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:6px 12px;border-radius:8px;cursor:pointer}
+button.primary{background:var(--acc);border-color:var(--acc);color:#fff}button:disabled{opacity:.5;cursor:default}
+button.small{padding:3px 10px;font-size:13px}
+#finder{display:flex;gap:8px;padding:8px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;align-items:center}
+#finder input{min-width:180px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chip{padding:3px 10px;font-size:13px;border-radius:999px}
+.chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+main{flex:1;display:flex;min-height:0}
+#left{flex:1;display:flex;flex-direction:column;min-width:0}
+#side{flex:1.1;border-left:1px solid var(--line);display:none;flex-direction:column;min-width:0;background:var(--card)}
+#side.on{display:flex}
+#side h2{font-size:15px;margin:0;padding:10px 14px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center}
+#side h2 span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pv{flex:1;overflow:auto;padding:0 0 12px}
+#pv pre{margin:0;padding:12px 14px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}
+.tabs{display:flex;gap:6px;padding:8px 14px;flex-wrap:wrap}
+table{border-collapse:collapse;font-size:13px;min-width:100%}th,td{border:1px solid var(--line);padding:3px 8px;text-align:left;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+th{position:sticky;top:0;background:var(--bg)}td.n,th.n{color:var(--mut);text-align:right}tr.hit td{background:var(--hit);font-weight:600}
+#log>*{flex-shrink:0}
+#log{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px;max-width:820px;width:100%;margin:0 auto}
+.msg{padding:10px 14px;border-radius:12px;max-width:92%;white-space:pre-wrap;overflow-wrap:anywhere}
+.user{align-self:flex-end;background:var(--acc);color:#fff}.answer{background:var(--card);border:1px solid var(--line)}
+.tool,.note{color:var(--mut);font-size:13px}.error{color:var(--bad)}
+.confirm{border:2px solid var(--acc);background:var(--card);border-radius:12px;padding:12px 14px}
+.confirm pre{margin:8px 0;max-height:220px;overflow:auto;background:var(--bg);padding:8px;border-radius:8px;font-size:12.5px}
+.confirm .row{display:flex;gap:8px}
+.files{border:1px solid var(--line);background:var(--card);border-radius:12px;overflow:hidden}
+.files>strong{display:block;padding:8px 14px;border-bottom:1px solid var(--line)}
+.file{display:flex;gap:10px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line)}.file:last-child{border-bottom:0}
+.file.sel{background:var(--hit)}.file .info{flex:1;min-width:0}.file .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file .fd,.file .why{color:var(--mut);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+#selbar{display:none;align-items:center;gap:8px;padding:6px 16px;border-top:1px solid var(--line);font-size:14px;max-width:820px;width:100%;margin:0 auto}
+#selbar.on{display:flex}#selbar b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+form{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);max-width:820px;width:100%;margin:0 auto}
+input{flex:1;font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg)}
+.hint{color:var(--mut);font-size:14px;text-align:center;padding:24px}
+@media (max-width:860px){main{flex-direction:column}#side{border-left:0;border-top:1px solid var(--line);max-height:42vh;flex:none}}
+</style></head><body>
+<header><h1>Hearth</h1><span class="sub" id="info">loading…</span><button id="undo" type="button">Undo last change</button></header>
+<div id="finder">
+  <input id="fq" placeholder="Find files, e.g. Country, invoice, lease…" autocomplete="off" maxlength="200">
+  <div class="chips" id="chips"></div>
+  <button class="primary" id="fgo" type="button">Find</button>
+</div>
+<main>
+  <div id="left">
+    <div id="log"><div class="hint" id="hint">I can look at the files anywhere on this computer. For example:<br>“What files are in this folder? Show them by type and the total” · “List my PDFs in Downloads” · “Which spreadsheets have a Country column?”<br>I list names, types and sizes freely, but <b>I ask before opening a file’s contents</b> and before changing anything.<br>Everything stays on this computer.</div></div>
+    <div id="selbar"><span>Working on:</span><b id="selname"></b><button class="small" id="selclear" type="button">Clear</button></div>
+    <form id="f"><input id="q" placeholder="What would you like to do?" autocomplete="off" maxlength="4000"><button class="primary" id="go">Send</button></form>
+  </div>
+  <aside id="side"><h2><span id="pvname"></span><button class="small" id="pvx" type="button">Close</button></h2><div id="pv"></div></aside>
+</main>
+<script>
+const H={'Content-Type':'application/json','X-Hearth-UI':'1'};
+const $=id=>document.getElementById(id);
+const log=$('log'),q=$('q'),go=$('go');
+let since=0,busy=false,timer=null,selected=null,kind='',sheetTab=0,lastPreview=null;
+function el(tag,cls,text){const d=document.createElement(tag);if(cls)d.className=cls;if(text!==undefined)d.textContent=text;return d}
+function add(cls,text){const d=el('div',cls,text);log.appendChild(d);log.scrollTop=log.scrollHeight;return d}
+async function post(url,obj){const r=await fetch(url,{method:'POST',headers:H,body:JSON.stringify(obj||{})});let d={};try{d=await r.json()}catch(e){}
+  if(!r.ok)add('error',d.error||'Something went wrong');return r.ok?d:null}
+
+/* ---- approval cards */
+function card(ev){
+  const c=el('div','confirm');c.appendChild(el('strong','',ev.text));
+  if(ev.detail)c.appendChild(el('pre','',ev.detail));
+  const r=el('div','row');
+  const opts=ev.options&&ev.options.length?ev.options:['Allow','Don’t allow'];
+  opts.forEach((label,i)=>{const b=el('button',i===0?'primary':'',label);
+    b.onclick=async()=>{r.querySelectorAll('button').forEach(x=>x.disabled=true);
+      await fetch('/api/confirm',{method:'POST',headers:H,body:JSON.stringify({id:ev.i,choice:i})})};r.appendChild(b)});
+  c.appendChild(r);log.appendChild(c);log.scrollTop=log.scrollHeight;
+}
+
+/* ---- file cards, selection, preview */
+function fileCard(ev){
+  const c=el('div','files');c.appendChild(el('strong','',ev.text));
+  for(const f of ev.files||[]){
+    const row=el('div','file'+(selected&&selected.path===f.path?' sel':''));row.dataset.path=f.path;
+    row.appendChild(el('span','tag',f.kind));
+    const info=el('div','info');info.appendChild(el('div','nm',f.name));info.appendChild(el('div','fd',f.folder));
+    if(f.why)info.appendChild(el('div','why',f.why));row.appendChild(info);
+    const b=el('button','small primary','Select');b.onclick=()=>choose(f.path);row.appendChild(b);c.appendChild(row);
+  }
+  log.appendChild(c);markSelected();log.scrollTop=log.scrollHeight;
+}
+function markSelected(){document.querySelectorAll('.file').forEach(r=>{const on=!!selected&&r.dataset.path===selected.path;r.classList.toggle('sel',on);
+  const b=r.querySelector('button');b.textContent=on?'Selected':'Select';b.disabled=on})}
+function showSelected(){
+  $('selbar').classList.toggle('on',!!selected);$('selname').textContent=selected?selected.name:'';
+  q.placeholder=selected?'What should I do with '+selected.name+'?':'What would you like to do?';
+  markSelected();if(!selected){$('side').classList.remove('on');lastPreview=null}
+}
+async function choose(path){const d=await post('/api/select',{path});if(!d)return;selected=d.selected;sheetTab=0;showSelected();loadPreview()}
+async function loadPreview(){
+  if(!selected)return;
+  try{const r=await fetch('/api/preview?path='+encodeURIComponent(selected.path));const d=await r.json();
+    if(!selected||d.path!==selected.path&&r.ok)return;renderPreview(r.ok?d:{name:selected.name,error:d.error})}catch(e){}
+}
+function renderPreview(d){
+  $('side').classList.add('on');$('pvname').textContent=d.name||'';const pv=$('pv');pv.replaceChildren();
+  if(d.error){pv.appendChild(el('pre','',d.error));return}
+  if(d.table){
+    if(sheetTab>=d.table.length)sheetTab=0;
+    if(d.table.length>1){const t=el('div','tabs');d.table.forEach((s,i)=>{const b=el('button','small chip'+(i===sheetTab?' on':''),s.name);
+      b.onclick=()=>{sheetTab=i;renderPreview(d)};t.appendChild(b)});pv.appendChild(t)}
+    const s=d.table[sheetTab];
+    pv.appendChild(el('div','note','  '+s.total+' data row'+(s.total===1?'':'s')+(s.total>s.rows.length?' · showing the first '+s.rows.length:'')));
+    const tb=el('table');const hr=el('tr');hr.appendChild(el('th','n','#'));s.cols.forEach(c=>hr.appendChild(el('th','',c)));tb.appendChild(hr);
+    s.rows.forEach(r=>{const tr=el('tr',r.hit?'hit':'');tr.appendChild(el('td','n',String(r.n)));r.cells.forEach(c=>tr.appendChild(el('td','',c)));tb.appendChild(tr)});
+    pv.appendChild(tb);
+  }else{pv.appendChild(el('pre','',d.text||'(empty)'));if(d.more)pv.appendChild(el('div','note','  … only the start is shown'))}
+}
+$('pvx').onclick=()=>{$('side').classList.remove('on')};
+$('selclear').onclick=async()=>{if(await post('/api/select',{path:null})){selected=null;showSelected()}};
+
+/* ---- find bar */
+const KINDS=[['','All'],['excel','Excel'],['word','Word'],['pdf','PDF'],['text','Text']];
+KINDS.forEach(([k,l])=>{const b=el('button','chip'+(k===kind?' on':''),l);b.type='button';
+  b.onclick=()=>{kind=k;[...$('chips').children].forEach((x,i)=>x.classList.toggle('on',KINDS[i][0]===k))};$('chips').appendChild(b)});
+async function doFind(){const query=$('fq').value.trim();if(!query)return;await post('/api/find',{query,kind});clearTimeout(timer);poll()}
+$('fgo').onclick=doFind;$('fq').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doFind()}});
+
+/* ---- conversation */
+async function poll(){
+  let refresh=false;
+  try{const r=await fetch('/api/poll?since='+since);const d=await r.json();
+    for(const ev of d.events){
+      $('hint')?.remove();
+      if(ev.kind==='confirm')card(ev);
+      else if(ev.kind==='files')fileCard(ev);
+      else if(ev.kind==='tool')add('tool','· '+ev.text);
+      else if(ev.kind==='user')add('msg user',ev.text);
+      else{add(ev.kind==='answer'?'msg answer':ev.kind,ev.text);if(ev.kind==='answer'||ev.kind==='note')refresh=true}
+    }
+    since=d.n;busy=d.busy;
+  }catch(e){}
+  go.disabled=busy;go.textContent=busy?'Working…':'Send';
+  if(refresh&&selected)loadPreview();
+  timer=setTimeout(poll,busy?500:1500);
+}
+$('f').onsubmit=async e=>{e.preventDefault();const text=q.value.trim();if(!text||busy)return;q.value='';
+  await post('/api/chat',{text});clearTimeout(timer);poll()};
+$('undo').onclick=async()=>{await post('/api/undo');clearTimeout(timer);poll()};
+fetch('/api/state').then(r=>r.json()).then(s=>{$('info').textContent=(s.folders.length?'Trusted folders: '+s.folders.join(' · '):'No trusted folders: I will ask before reading anything')+'  —  model: '+s.model;
+  if(s.selected){selected=s.selected;showSelected();loadPreview()}});
+poll();
+</script></body></html>

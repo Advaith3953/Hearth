@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hearth-assistant"
+version = "0.4.2"
+description = "A private, offline assistant for the files you share with it (local ~8B model via Ollama)."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+pdf = ["pypdf>=4", "pdfminer.six>=20221105"]
+more = ["pypdf>=4", "pillow>=10", "pdfplumber>=0.10"]
+dev = ["pytest>=7", "pytest-cov>=4", "ruff>=0.4", "mypy>=1.8", "pypdf>=4", "pdfminer.six>=20221105", "openpyxl>=3.1", "python-docx>=1.1", "reportlab>=4", "pillow>=10", "pdfplumber>=0.10"]
+
+[project.scripts]
+hearth = "hearth.cli:main"
+
+[tool.setuptools]
+packages = ["hearth"]
+
+[tool.setuptools.package-data]
+hearth = ["static/*.html"]
+
+[tool.ruff]
+line-length = 125
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM"]
+ignore = ["E501", "N802"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["hearth", "evals"]
+
+[[tool.mypy.overrides]]
+module = ["pdfminer", "pdfminer.*", "reportlab", "reportlab.*", "pypdf", "pypdf.*", "PIL", "PIL.*", "pdfplumber", "pdfplumber.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q -p no:cacheprovider"
+
+[tool.coverage.run]
+source = ["hearth"]
+omit = ["hearth/__main__.py"]
